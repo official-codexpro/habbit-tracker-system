@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Learning & Skills · LIFEGAME{% endblock %}
+
+{% block content %}
+<div class="learning-page" id="learning-page">
+  <header class="learning-page-heading">
+    <div>
+      <p class="learning-eyebrow">SKILL DEVELOPMENT / LEARNING ENGINE</p>
+      <h1>LEARNING COMMAND</h1>
+      <p>Turn recorded study time into a visible personal progression map.</p>
+    </div>
+    <a class="learning-history-link" href="{% url 'learning:history' %}">
+      VIEW LEARNING HISTORY
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 10h12M10.5 5l5 5-5 5"/></svg>
+    </a>
+  </header>
+
+  <div class="learning-feedback" id="learning-loading" role="status">
+    <span class="learning-loader" aria-hidden="true"></span>
+    Reading your learning records...
+  </div>
+  <div class="learning-feedback is-error" id="learning-error" role="alert" hidden>
+    <span id="learning-error-message">Learning data could not be loaded.</span>
+    <button type="button" id="learning-retry">RETRY</button>
+  </div>
+
+  <section class="learning-metric-grid" aria-label="Learning overview">
+    <article class="learning-metric"><span class="learning-metric-icon metric-violet">◇</span><span>ACTIVE GOALS</span><strong id="learning-goals-count">{{ active_goals_count }}</strong><small>Learning directions</small></article>
+    <article class="learning-metric"><span class="learning-metric-icon metric-cyan">⌁</span><span>TOTAL SKILLS</span><strong id="learning-skills-count">{{ skills_count }}</strong><small>Tracked proficiencies</small></article>
+    <article class="learning-metric"><span class="learning-metric-icon metric-blue">▣</span><span>ACTIVE COURSES</span><strong id="learning-courses-count">{{ courses_count }}</strong><small>Learning tracks</small></article>
+    <article class="learning-metric"><span class="learning-metric-icon metric-green">✓</span><span>COMPLETED COURSES</span><strong id="learning-completed-courses">{{ completed_courses_count }}</strong><small>Completed journeys</small></article>
+    <article class="learning-metric"><span class="learning-metric-icon metric-gold">◷</span><span>LEARNING TIME</span><strong id="learning-total-time">{{ total_minutes|divisibleby:60 }}</strong><small id="learning-time-detail">{{ total_minutes }} recorded minutes</small></article>
+    <article class="learning-metric"><span class="learning-metric-icon metric-orange">✦</span><span>SESSIONS RECORDED</span><strong id="learning-session-count">{{ session_count }}</strong><small>Actual study sessions</small></article>
+  </section>
+
+  <section class="learning-quick-actions" aria-label="Quick actions">
+    <button type="button" data-open-modal="goal"><span>＋</span> ADD LEARNING GOAL</button>
+    <button type="button" data-open-modal="skill"><span>＋</span> ADD SKILL</button>
+    <button type="button" data-open-modal="course"><span>＋</span> ADD COURSE</button>
+    <button type="button" data-open-modal="session"><span>＋</span> RECORD SESSION</button>
+  </section>
+
+  <div class="learning-layout">
+    <section class="learning-panel learning-goals-panel" aria-labelledby="learning-goals-title">
+      <div class="learning-panel-heading"><div><p>ACTIVE QUESTLINES</p><h2 id="learning-goals-title">LEARNING GOALS</h2></div><button class="learning-panel-action" type="button" data-open-modal="goal">＋ ADD</button></div>
+      <div class="learning-card-list" id="learning-goals-list">
+        {% for goal in goals %}
+        {% if goal.status == "ACTIVE" %}
+        <article class="learning-goal-card"><div><span class="learning-priority priority-{{ goal.priority }}">P{{ goal.priority }}</span><strong>{{ goal.title }}</strong></div><p>{{ goal.description|default:"No description recorded." }}</p><small>{% if goal.target_date %}TARGET {{ goal.target_date|date:"M j, Y" }}{% else %}NO TARGET DATE{% endif %}</small></article>
+        {% endif %}
+        {% empty %}
+        <p class="learning-empty">No learning goals recorded yet.</p>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="learning-panel learning-skills-panel" aria-labelledby="learning-skills-title">
+      <div class="learning-panel-heading"><div><p>PROFICIENCY MATRIX</p><h2 id="learning-skills-title">MY SKILLS</h2></div><button class="learning-panel-action" type="button" data-open-modal="skill">＋ ADD</button></div>
+      <div class="learning-card-list" id="learning-skills-list">
+        {% for skill in skills %}
+        {% if skill.status == "ACTIVE" %}
+        <article class="learning-skill-card"><div><strong>{{ skill.name }}</strong><span>{{ skill.get_current_proficiency_display|default:skill.current_proficiency }} → {{ skill.get_target_proficiency_display|default:skill.target_proficiency }}</span></div><div class="learning-proficiency-track"><span style="width: {% widthratio skill.current_proficiency 5 100 %}%"></span></div><small>{{ skill.category|default:"GENERAL" }} · Level {{ skill.current_proficiency }} / 5</small></article>
+        {% endif %}
+        {% empty %}
+        <p class="learning-empty">No skills discovered yet.</p>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="learning-panel learning-courses-panel" aria-labelledby="learning-courses-title">
+      <div class="learning-panel-heading"><div><p>STUDY TRACKS</p><h2 id="learning-courses-title">ACTIVE COURSES</h2></div><button class="learning-panel-action" type="button" data-open-modal="course">＋ ADD</button></div>
+      <div class="learning-card-list" id="learning-courses-list">
+        {% for course in courses %}
+        {% if course.status != "COMPLETED" and course.status != "ARCHIVED" %}
+        <article class="learning-course-card"><div><strong>{{ course.title }}</strong><span>{{ course.get_status_display }}</span></div><div class="learning-progress-track"><span style="width: {% if course.progress_percentage != None %}{{ course.progress_percentage }}{% else %}0{% endif %}%"></span></div><small>{% if course.progress_percentage != None %}{{ course.completed_topics }} / {{ course.total_topics }} topics · {{ course.progress_percentage|floatformat:0 }}%{% else %}Progress unavailable until topics and total are defined{% endif %}</small></article>
+        {% endif %}
+        {% empty %}
+        <p class="learning-empty">No courses recorded yet.</p>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="learning-panel learning-sessions-panel" aria-labelledby="learning-sessions-title">
+      <div class="learning-panel-heading"><div><p>ACTUAL ACTIVITY</p><h2 id="learning-sessions-title">RECENT SESSIONS</h2></div><button class="learning-panel-action" type="button" data-open-modal="session">＋ RECORD</button></div>
+      <div class="learning-session-list" id="learning-sessions-list">
+        {% for session in sessions %}
+        <article class="learning-session-row"><span class="learning-session-date">{{ session.session_date|date:"M j" }}</span><div><strong>{{ session.title }}</strong><small>{% if session.course %}{{ session.course.title }}{% elif session.skill %}{{ session.skill.name }}{% else %}Independent practice{% endif %}</small></div><strong class="learning-duration">{{ session.duration_minutes }} min</strong></article>
+        {% empty %}
+        <p class="learning-empty">No learning sessions recorded yet.</p>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="learning-panel learning-consistency-panel" aria-labelledby="learning-consistency-title">
+      <div class="learning-panel-heading"><div><p>RECORDED LEARNING DAYS</p><h2 id="learning-consistency-title">CONSISTENCY</h2></div><span class="learning-panel-badge" id="learning-consistency-badge">0 DAYS</span></div>
+      <div class="learning-consistency-days" id="learning-consistency-days" aria-label="Recent recorded learning activity"></div>
+      <p class="learning-panel-note">Only saved LearningSession records count as active learning days.</p>
+    </section>
+  </div>
+</div>
+
+<div class="learning-modal" id="learning-modal" role="dialog" aria-modal="true" aria-labelledby="learning-modal-title" hidden>
+  <div class="learning-modal-backdrop" data-close-modal></div>
+  <section class="learning-modal-card">
+    <header><div><p>LEARNING ENGINE</p><h2 id="learning-modal-title">ADD RECORD</h2></div><button type="button" data-close-modal aria-label="Close">×</button></header>
+    <div id="learning-modal-content"></div>
+  </section>
+</div>
+
+{{ learning_config|json_script:"learning-config" }}
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'js/learning.js' %}" defer></script>
+{% endblock %}

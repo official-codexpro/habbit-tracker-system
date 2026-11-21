@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Overview · LIFEGAME{% endblock %}
+
+{% block content %}
+<section class="dashboard-stage" aria-label="Life journey overview">
+  <article class="hero-banner">
+    <div class="hero-copy">
+      <p class="hero-kicker">WELCOME BACK, PLAYER</p>
+      <h1>LEVEL UP<span>YOUR LIFE</span></h1>
+      <p class="hero-subtitle">YOUR JOURNEY CONTINUES TODAY</p>
+      <p class="hero-description">Complete missions, build skills and turn every focused step into lasting progress.</p>
+      <a class="primary-button" href="{% url 'tasks:list' %}">
+        START A MISSION
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M14 7l5 5-5 5"/></svg>
+      </a>
+    </div>
+    <img class="hero-art" src="{% static 'images/lifegame-guardian.svg' %}" alt="LIFEGAME guardian">
+  </article>
+
+  <aside class="right-rail" aria-label="Player progression">
+    <article class="panel progress-panel">
+      <div class="progress-copy">
+        <p class="panel-kicker">MY LIFE JOURNEY</p>
+        <h2>{{ player_progress.rank_display|default:"Beginner" }}</h2>
+        <span class="player-rank">{{ player_progress.current_rank|default:"BEGINNER" }} RANK</span>
+        <p class="total-xp"><strong>{{ player_progress.total_xp|default:0 }} XP</strong> TOTAL XP</p>
+        <span class="next-level">{{ player_progress.xp_remaining|default:100 }} XP TO NEXT LEVEL</span>
+      </div>
+      <div class="xp-ring" style="--xp-progress: {{ player_progress.progress_percentage|default:0 }}%">
+        <span>{{ player_progress.progress_percentage|default:0|floatformat:0 }}<small>%</small></span>
+      </div>
+    </article>
+
+    <article class="panel collection-panel">
+      <div class="panel-heading">
+        <h2>YOUR COLLECTION</h2>
+        <span class="collection-mark" aria-hidden="true">◇</span>
+      </div>
+      <div class="collection-list">
+        <div class="collection-row">
+          <span class="collection-icon">✓</span>
+          <span class="collection-copy"><strong>MISSIONS</strong><small>Today's progress</small></span>
+          <span class="collection-progress"><small>{{ mission_summary.completed|default:0 }}/{{ mission_summary.total_scheduled|default:0 }}</small><span class="mini-progress"><span style="width: {{ mission_summary.completion_percentage|default:0 }}%"></span></span></span>
+        </div>
+        <div class="collection-row">
+          <span class="collection-icon">↗</span>
+          <span class="collection-copy"><strong>STREAK</strong><small>Daily consistency</small></span>
+          <span class="collection-progress"><small>{{ player_progress.current_streak|default:0 }} days</small></span>
+        </div>
+        <div class="collection-row">
+          <span class="collection-icon">◷</span>
+          <span class="collection-copy"><strong>LEARNING</strong><small>{{ learning_today_minutes|default:0 }} minutes today</small></span>
+          <span class="collection-progress"><small>{{ learning_today_count|default:0 }} sessions</small></span>
+        </div>
+        <div class="collection-row">
+          <span class="collection-icon">★</span>
+          <span class="collection-copy"><strong>ACHIEVEMENTS</strong><small>Milestones unlocked</small></span>
+          <span class="collection-progress"><small>{{ player_progress.unlocked_achievement_count|default:0 }}</small></span>
+        </div>
+      </div>
+    </article>
+  </aside>
+</section>
+
+<section class="middle-grid" aria-label="Recent activity and player profile">
+  <article class="panel activity-panel">
+    <div class="panel-heading"><div><p class="panel-kicker">TODAY'S OVERVIEW</p><h2>RECENT ACTIVITIES</h2></div><span class="activity-total">{{ mission_summary.total_scheduled|default:0 }} ACTIVE</span></div>
+    <div class="activity-grid">
+      <div class="activity-card"><span class="activity-icon">✓</span><span class="activity-copy"><strong>Daily missions</strong><small>{{ mission_summary.completed|default:0 }} completed</small></span><span class="activity-status">{{ mission_summary.completion_percentage|default:0|floatformat:0 }}%</span><span class="mini-progress"><span style="width: {{ mission_summary.completion_percentage|default:0 }}%"></span></span></div>
+      <div class="activity-card"><span class="activity-icon">↗</span><span class="activity-copy"><strong>Consistency streak</strong><small>{{ player_progress.current_streak|default:0 }} day streak</small></span><span class="activity-status">ACTIVE</span><span class="mini-progress"><span style="width: {% if player_progress.current_streak %}100{% else %}0{% endif %}%"></span></span></div>
+      <div class="activity-card"><span class="activity-icon">▤</span><span class="activity-copy"><strong>LEARNING STARTER</strong><small>{{ learning_today_minutes|default:0 }} minutes recorded</small></span><span class="activity-status">{% if learning_today_count %}ACTIVE{% else %}READY{% endif %}</span><span class="mini-progress"><span style="width: {% if learning_today_count %}100{% else %}0{% endif %}%"></span></span></div>
+      <div class="activity-card"><span class="activity-icon">★</span><span class="activity-copy"><strong>Achievements</strong><small>{{ player_progress.unlocked_achievement_count|default:0 }} unlocked</small></span><span class="activity-status">LIFETIME</span><span class="mini-progress"><span style="width: {% if player_progress.unlocked_achievement_count %}100{% else %}0{% endif %}%"></span></span></div>
+    </div>
+  </article>
+
+  <article class="panel profile-panel">
+    <div class="profile-top">
+      <span class="profile-avatar"><img src="{% static 'images/lifegame-guardian.svg' %}" alt=""></span>
+      <span class="profile-intro"><strong>{{ player_progress.display_name|default:"PLAYER ONE"|upper }}</strong><span class="rank-badge">{{ player_progress.rank_display|default:"BEGINNER" }}</span></span>
+      <span class="profile-level">{{ player_progress.current_level|default:1|stringformat:"02d" }}</span>
+    </div>
+    <div class="profile-stat-grid">
+      <div class="profile-stat"><span>TOTAL XP</span><strong>{{ player_progress.total_xp|default:0 }} XP</strong></div>
+      <div class="profile-stat"><span>CURRENT STREAK</span><strong>{{ player_progress.current_streak|default:0 }} DAYS</strong></div>
+      <div class="profile-stat"><span>MISSIONS COMPLETE</span><strong>{{ player_progress.total_completed_missions|default:0 }}</strong></div>
+      <div class="profile-stat"><span>ACHIEVEMENTS</span><strong>{{ player_progress.unlocked_achievement_count|default:0 }}</strong></div>
+    </div>
+  </article>
+</section>
+
+<section class="bottom-grid" aria-label="Missions and achievements">
+  <article class="panel missions-panel">
+    <div class="panel-heading"><div><p class="panel-kicker">MAKE TODAY COUNT</p><h2>TODAY'S MISSIONS</h2></div><span class="activity-total">{{ mission_summary.total_scheduled|default:0 }}</span></div>
+    {% if today_missions %}
+      <div class="activity-grid">
+        {% for occurrence in today_missions %}
+        <a class="activity-card" href="{% url 'tasks:detail' occurrence.task_id %}">
+          <span class="activity-icon">✓</span><span class="activity-copy"><strong>{{ occurrence.task.title }}</strong><small>{{ occurrence.task.category.name }} · {{ occurrence.task.get_difficulty_display }}</small></span><span class="activity-status">{{ occurrence.status }}</span>
+        </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="missions-empty"><span class="missions-empty-icon">✓</span><strong>No missions scheduled</strong><p>Create a mission to begin today's progression.</p></div>
+    {% endif %}
+  </article>
+
+  <article class="panel achievements-panel">
+    <div class="panel-heading"><div><p class="panel-kicker">MILESTONES</p><h2>ACHIEVEMENTS</h2></div><span class="activity-total">{{ player_progress.unlocked_achievement_count|default:0 }} UNLOCKED</span></div>
+    {% if dashboard_achievements %}
+      <div class="achievement-strip">
+        {% for achievement in dashboard_achievements %}
+        <article class="achievement-card {% if achievement.code in unlocked_achievement_codes %}is-unlocked{% endif %}">
+          <span class="achievement-emblem">★{% if achievement.code not in unlocked_achievement_codes %}<span class="achievement-lock" aria-label="Locked">◆</span>{% endif %}</span>
+          <strong>{{ achievement.name }}</strong>
+          {% if achievement.code in unlocked_achievement_codes %}<small>UNLOCKED</small>{% else %}<small>Locked achievement: {{ achievement.name }}</small>{% endif %}
+        </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="missions-empty"><strong>No achievements available</strong><p>Milestones will appear here as the journey begins.</p></div>
+    {% endif %}
+  </article>
+</section>
+{% endblock %}
+

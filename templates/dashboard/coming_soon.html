@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}{{ section_name }} · LIFEGAME{% endblock %}
+
+{% block content %}
+<section class="coming-soon-page">
+  <span class="coming-soon-icon" aria-hidden="true">
+    <svg viewBox="0 0 48 48"><path d="M24 6v5M24 37v5M6 24h5M37 24h5M11.3 11.3l3.5 3.5M33.2 33.2l3.5 3.5M36.7 11.3l-3.5 3.5M14.8 33.2l-3.5 3.5"/><circle cx="24" cy="24" r="10"/></svg>
+  </span>
+  <p class="eyebrow">UNDER CONSTRUCTION</p>
+  <h1>{{ section_name }}</h1>
+  <span class="coming-label">Coming soon</span>
+  <p>This part of your LIFEGAME journey is still being built. For now, the overview is your home base.</p>
+  <a class="primary-button" href="{% url 'dashboard:home' %}">Back to overview</a>
+</section>
+{% endblock %}

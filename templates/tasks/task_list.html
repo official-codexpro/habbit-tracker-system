@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}{% if show_archived %}Archived Missions{% else %}Daily Missions{% endif %} · LIFEGAME{% endblock %}
+
+{% block content %}
+{% if show_archived %}
+  <section class="task-page">
+    <header class="task-page-heading">
+      <div>
+        <p class="task-eyebrow">MISSION ARCHIVE</p>
+        <h1>Archived missions</h1>
+        <p>Archived missions remain here with their completion history intact.</p>
+      </div>
+      <a class="task-action-button" href="{% url 'tasks:list' %}">Back to Daily Missions</a>
+    </header>
+    <section class="task-panel">
+      <div class="task-panel-heading">
+        <h2>Archived definitions</h2>
+        <span>{{ tasks|length }} mission{{ tasks|length|pluralize }}</span>
+      </div>
+      {% if tasks %}
+        <div class="task-list">
+          {% for task in tasks %}
+            <article class="task-list-item">
+              <span class="task-color-mark" style="--task-color: {{ task.category.color }}"></span>
+              <div class="task-list-copy">
+                <a class="task-list-title" href="{% url 'tasks:detail' task_id=task.pk %}">{{ task.title }}</a>
+                <span>{{ task.category.name }} · {{ task.get_difficulty_display }} · {{ task.get_recurrence_type_display }}</span>
+              </div>
+              <span class="task-muted-status">ARCHIVED</span>
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="task-empty-state"><strong>No archived missions.</strong><p>When you archive a mission, it will be preserved here.</p></div>
+      {% endif %}
+    </section>
+  </section>
+{% else %}
+  <section class="mission-board" id="mission-board" aria-busy="false">
+    <header class="mission-page-heading">
+      <div>
+        <p class="task-eyebrow">PLAYER MISSIONS</p>
+        <h1>DAILY MISSIONS</h1>
+        <p>Every mission completed makes you stronger.</p>
+      </div>
+      <div class="mission-heading-actions">
+        <a class="mission-archive-link" href="{% url 'tasks:list' %}?archived=1">Mission archive</a>
+        <button class="task-action-button mission-create-button" id="open-mission-dialog" type="button">＋ CREATE MISSION</button>
+      </div>
+    </header>
+
+    <section class="mission-progress-panel" aria-labelledby="mission-progress-title">
+      <div class="mission-progress-top">
+        <div>
+          <p class="mission-section-kicker">DAILY MISSION PROGRESS</p>
+          <h2 id="mission-progress-title"><span id="mission-completed-count">{{ summary.completed }}</span> / <span id="mission-total-count">{{ summary.total_scheduled }}</span> COMPLETED</h2>
+        </div>
+        <div class="mission-progress-percent" id="mission-progress-percent">{{ summary.completion_percentage|floatformat:0 }}<small>%</small></div>
+      </div>
+      <div class="mission-progress-track" role="progressbar" aria-label="Daily mission completion" aria-valuenow="{{ summary.completion_percentage|floatformat:0 }}" aria-valuemin="0" aria-valuemax="100">
+        <span id="mission-progress-fill" style="width: {{ summary.completion_percentage }}%"></span>
+      </div>
+      <div class="mission-progress-stats">
+        <span><i class="mission-stat-dot mission-stat-completed"></i><b id="mission-stat-completed">{{ summary.completed }}</b> Completed</span>
+        <span><i class="mission-stat-dot mission-stat-pending"></i><b id="mission-stat-pending">{{ summary.pending }}</b> Pending</span>
+        <span><i class="mission-stat-dot mission-stat-skipped"></i><b id="mission-stat-skipped">{{ summary.skipped }}</b> Skipped</span>
+        <span class="mission-total-stat"><b id="mission-stat-total">{{ summary.total_scheduled }}</b> Total missions</span>
+      </div>
+    </section>
+
+    <section class="mission-controls" aria-label="Mission date and filters">
+      <div class="mission-date-controls">
+        <button class="mission-icon-button" id="mission-previous-day" type="button" aria-label="Previous day">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg>
+        </button>
+        <label class="mission-date-picker">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="16" rx="2"/><path d="M7.5 3v4M16.5 3v4M3.5 10h17"/></svg>
+          <input id="mission-date" type="date" value="{{ target_date|date:'Y-m-d' }}" aria-label="Selected mission date">
+        </label>
+        <button class="mission-icon-button" id="mission-next-day" type="button" aria-label="Next day">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+        </button>
+        <button class="mission-today-button" id="mission-today" type="button">TODAY</button>
+        <span class="mission-date-readable" id="mission-date-readable">{{ target_date|date:"l, F j, Y" }}</span>
+      </div>
+      <div class="mission-filter-controls">
+        <label class="mission-search-control">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.3"/><path d="m15.5 15.5 4.2 4.2"/></svg>
+          <input id="mission-search" type="search" name="search" maxlength="200" value="{{ filters.search }}" placeholder="Search missions..." aria-label="Search mission title and description">
+        </label>
+        <label class="mission-filter-label">
+          <span class="sr-only">Mission status</span>
+          <select id="mission-status-filter" aria-label="Filter by status">
+            <option value="">All Missions</option>
+            <option value="PENDING" {% if filters.status == "PENDING" %}selected{% endif %}>Pending</option>
+            <option value="COMPLETED" {% if filters.status == "COMPLETED" %}selected{% endif %}>Completed</option>
+            <option value="SKIPPED" {% if filters.status == "SKIPPED" %}selected{% endif %}>Skipped</option>
+          </select>
+        </label>
+        <label class="mission-filter-label">
+          <span class="sr-only">Mission category</span>
+          <select id="mission-category-filter" aria-label="Filter by category">
+            <option value="">All Categories</option>
+            {% for category in categories %}
+              <option value="{{ category.pk }}" {% if filters.category == category.pk %}selected{% endif %}>{{ category.name }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label class="mission-filter-label">
+          <span class="sr-only">Mission difficulty</span>
+          <select id="mission-difficulty-filter" aria-label="Filter by difficulty">
+            <option value="">All Difficulties</option>
+            {% for value, label in difficulty_choices %}
+              <option value="{{ value }}" {% if filters.difficulty == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <div class="mission-result-heading">
+      <h2>MISSIONS FOR <span id="mission-result-date">{{ target_date|date:"M j" }}</span></h2>
+      <span id="mission-result-count">{{ occurrences|length }} shown</span>
+    </div>
+
+    <div class="mission-clear-banner" id="mission-clear-banner" hidden>
+      <span aria-hidden="true">✦</span>
+      <p>All daily missions completed. Excellent work, Player!</p>
+    </div>
+    <div class="mission-error" id="mission-error" role="alert" hidden>
+      <span id="mission-error-message">Missions couldn't be loaded.</span>
+      <button id="mission-retry" type="button">Retry</button>
+    </div>
+    <p class="mission-loading" id="mission-loading" role="status" hidden>Scanning for missions...</p>
+
+    <div class="mission-grid" id="mission-grid" aria-live="polite">
+      {% for occurrence in occurrences %}
+        {% include "tasks/mission_card.html" with occurrence=occurrence %}
+      {% endfor %}
+    </div>
+    <div class="mission-empty" id="mission-empty" {% if occurrences %}hidden{% endif %}>
+      <span class="mission-empty-emblem" aria-hidden="true">✦</span>
+      <p class="mission-section-kicker" id="mission-empty-kicker">NO MISSIONS DETECTED</p>
+      <h2 id="mission-empty-title">{% if summary.total_scheduled == 0 and not has_active_tasks and not filters.status and not filters.category and not filters.difficulty and not filters.search %}Your journey begins with your first mission.{% elif summary.total_scheduled == 0 and not filters.status and not filters.category and not filters.difficulty and not filters.search %}No missions detected for this date.{% else %}No missions match this date and filter set.{% endif %}</h2>
+      <p id="mission-empty-copy">{% if summary.total_scheduled == 0 and not has_active_tasks and not filters.status and not filters.category and not filters.difficulty and not filters.search %}Your next adventure starts here. Create a mission and begin your journey.{% elif summary.total_scheduled == 0 and not filters.status and not filters.category and not filters.difficulty and not filters.search %}Choose another day or create a mission that matches this schedule.{% else %}Adjust your filters or choose another date to continue your journey.{% endif %}</p>
+      <button class="task-action-button" id="empty-create-mission" type="button" {% if filters.status or filters.category or filters.difficulty or filters.search %}hidden{% endif %}>{% if has_active_tasks %}CREATE MISSION{% else %}CREATE YOUR FIRST MISSION{% endif %}</button>
+    </div>
+
+    <div class="mission-toast" id="mission-toast" role="status" aria-live="polite" hidden></div>
+  </section>
+
+  <dialog class="mission-dialog" id="mission-dialog" aria-labelledby="mission-dialog-title">
+    <form class="mission-dialog-card" id="mission-form" method="post" novalidate>
+      {% csrf_token %}
+      <header class="mission-dialog-heading">
+        <div>
+          <p class="mission-section-kicker">MISSION CONTROL</p>
+          <h2 id="mission-dialog-title">CREATE MISSION</h2>
+          <p>Set a real-world objective for your next level.</p>
+        </div>
+        <button class="mission-dialog-close" id="close-mission-dialog" type="button" aria-label="Close mission form">×</button>
+      </header>
+      {% if not active_categories %}
+        <p class="mission-category-notice">No active categories are available. Add one in Django admin before creating a mission.</p>
+      {% endif %}
+      <div class="mission-form-errors" id="mission-form-errors" role="alert" hidden></div>
+      <div class="mission-form-grid">
+        {% for field in task_form %}
+          <div class="mission-form-field{% if field.name == 'description' or field.name == 'recurrence_days' %} mission-form-wide{% endif %}" data-field="{{ field.name }}">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {% if field.name == "recurrence_days" %}
+              <div class="mission-weekday-options">{{ field }}</div>
+            {% elif field.name == "category" %}
+              <select id="{{ field.id_for_label }}" name="{{ field.html_name }}" required>
+                <option value="">Select a category</option>
+                {% for category in categories %}
+                  <option value="{{ category.pk }}" data-active="{{ category.is_active|yesno:'true,false' }}">{{ category.name }}</option>
+                {% endfor %}
+              </select>
+            {% else %}
+              {{ field }}
+            {% endif %}
+            {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+            <span class="mission-field-error" data-error-for="{{ field.name }}"></span>
+          </div>
+        {% endfor %}
+      </div>
+      <footer class="mission-form-actions">
+        <button class="mission-cancel-button" id="cancel-mission-form" type="button">CANCEL</button>
+        <button class="task-action-button mission-submit-button" id="mission-submit" type="submit">
+          <span class="mission-submit-label">CREATE MISSION</span>
+          <span class="mission-submit-spinner" aria-hidden="true" hidden></span>
+        </button>
+      </footer>
+    </form>
+  </dialog>
+  {{ mission_config|json_script:"mission-config" }}
+{% endif %}
+{% endblock %}

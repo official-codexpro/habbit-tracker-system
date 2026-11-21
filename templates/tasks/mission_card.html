@@ -1,0 +1,41 @@
+<article class="mission-card difficulty-{{ occurrence.task.difficulty|lower }} status-{{ occurrence.status|lower }}" data-occurrence-id="{{ occurrence.pk }}" data-task-id="{{ occurrence.task_id }}">
+  <header class="mission-card-heading">
+    <span class="mission-category-mark" style="--category-color: {{ occurrence.task.category.color }}" aria-hidden="true">✦</span>
+    <div class="mission-card-tags">
+      <span class="mission-category-name">{{ occurrence.task.category.name }}</span>
+      <span class="mission-difficulty-badge">{{ occurrence.task.get_difficulty_display }}</span>
+    </div>
+    <details class="mission-menu">
+      <summary aria-label="Mission actions">•••</summary>
+      <div class="mission-menu-items">
+        <a href="{% url 'tasks:edit' task_id=occurrence.task_id %}" data-action="edit">Edit mission</a>
+        <form method="post" action="{% url 'tasks:archive' task_id=occurrence.task_id %}" data-action="archive" data-task-id="{{ occurrence.task_id }}">
+          {% csrf_token %}
+          <button type="submit">Archive mission</button>
+        </form>
+      </div>
+    </details>
+  </header>
+  <h3 class="mission-title">{{ occurrence.task.title }}</h3>
+  <p class="mission-description">{% if occurrence.task.description %}{{ occurrence.task.description }}{% else %}No mission briefing provided.{% endif %}</p>
+  <div class="mission-card-meta">
+    <span><b>{{ occurrence.task.xp_reward }}</b> XP reward</span>
+    <span>{% if occurrence.task.estimated_minutes %}{{ occurrence.task.estimated_minutes }} min{% else %}Flexible time{% endif %}</span>
+    <span>{{ occurrence.scheduled_date|date:"M j, Y" }}</span>
+  </div>
+  <div class="mission-card-state">
+    <span class="mission-status-label"><i></i>{{ occurrence.get_status_display }}</span>
+    {% if occurrence.completed_at %}<time datetime="{{ occurrence.completed_at|date:'c' }}">{{ occurrence.completed_at|date:"M j, Y · P" }}</time>{% endif %}
+  </div>
+  <footer class="mission-card-actions">
+    {% if occurrence.status == "PENDING" %}
+      <button class="mission-complete-button" type="button" data-action="complete">COMPLETE MISSION</button>
+      <button class="mission-skip-button" type="button" data-action="skip">SKIP</button>
+    {% elif occurrence.status == "COMPLETED" %}
+      <span class="mission-completed-caption">MISSION COMPLETE</span>
+      <button class="mission-undo-button" type="button" data-action="undo">UNDO</button>
+    {% else %}
+      <span class="mission-skipped-caption">MISSION SKIPPED</span>
+    {% endif %}
+  </footer>
+</article>

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}{{ task.title }} · LIFEGAME{% endblock %}
+
+{% block content %}
+<section class="task-page">
+  <header class="task-page-heading">
+    <div>
+      <p class="task-eyebrow">TASK DETAILS</p>
+      <h1>{{ task.title }}</h1>
+      <p>{{ task.category.name }} · {{ task.get_difficulty_display }} · {{ task.get_recurrence_type_display }}{% if not task.is_active %} · Archived{% endif %}</p>
+    </div>
+    <div class="task-heading-actions">
+      <a class="task-action-button task-secondary-button" href="{% url 'tasks:edit' task_id=task.pk %}">Edit task</a>
+      <a class="task-text-button" href="{% url 'tasks:list' %}">Back to tasks</a>
+    </div>
+  </header>
+
+  <section class="task-panel task-detail-panel">
+    {% if task.description %}<p>{{ task.description|linebreaksbr }}</p>{% else %}<p class="task-dim">No description provided.</p>{% endif %}
+    <dl class="task-detail-grid">
+      <div><dt>Estimated time</dt><dd>{{ task.estimated_minutes }} min</dd></div>
+      <div><dt>XP reward</dt><dd>{{ task.xp_reward }} XP</dd></div>
+      <div><dt>Start date</dt><dd>{{ task.start_date|date:"M j, Y" }}</dd></div>
+      <div><dt>End date</dt><dd>{% if task.end_date %}{{ task.end_date|date:"M j, Y" }}{% else %}No end date{% endif %}</dd></div>
+      {% if recurrence_days_display %}<div><dt>Weekdays</dt><dd>{{ recurrence_days_display }}</dd></div>{% endif %}
+      <div><dt>State</dt><dd>{% if task.is_active %}Active{% else %}Archived{% endif %}</dd></div>
+    </dl>
+  </section>
+
+  <section class="task-panel">
+    <div class="task-panel-heading">
+      <h2>Occurrence history</h2>
+      <span>{{ occurrences.paginator.count }} record{{ occurrences.paginator.count|pluralize }}</span>
+    </div>
+    {% if occurrences %}
+      <div class="task-list">
+        {% for occurrence in occurrences %}
+          <article class="task-list-item">
+            <span class="task-occurrence-status status-{{ occurrence.status|lower }}"></span>
+            <span class="task-list-copy">
+              <strong class="task-list-title">{{ occurrence.scheduled_date|date:"l, M j, Y" }}</strong>
+              <span>{{ occurrence.get_status_display }}{% if occurrence.completed_at %} · {{ occurrence.completed_at|date:"M j, Y, P" }}{% endif %}{% if occurrence.is_superseded %} · Superseded schedule{% endif %}</span>
+              {% if occurrence.notes %}<small>{{ occurrence.notes }}</small>{% endif %}
+            </span>
+            <span class="task-list-xp">{{ occurrence.xp_awarded }} XP awarded</span>
+          </article>
+        {% endfor %}
+      </div>
+      {% if occurrences.has_other_pages %}
+        <nav class="task-pagination" aria-label="Occurrence history pages">
+          {% if occurrences.has_previous %}<a href="?page={{ occurrences.previous_page_number }}">Previous</a>{% endif %}
+          <span>Page {{ occurrences.number }} of {{ occurrences.paginator.num_pages }}</span>
+          {% if occurrences.has_next %}<a href="?page={{ occurrences.next_page_number }}">Next</a>{% endif %}
+        </nav>
+      {% endif %}
+    {% else %}
+      <div class="task-empty-state"><strong>No occurrences yet.</strong><p>Occurrences are generated when a date is requested by the task engine.</p></div>
+    {% endif %}
+  </section>
+</section>
+{% endblock %}

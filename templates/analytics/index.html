@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Life Analytics · LIFEGAME{% endblock %}
+
+{% block content %}
+<div class="analytics-page" id="analytics-page">
+  <header class="analytics-page-heading">
+    <div>
+      <p class="analytics-eyebrow">PLAYER INTELLIGENCE / READ-ONLY</p>
+      <h1>LIFE ANALYTICS</h1>
+      <p>Signals from your recorded missions, streaks and XP ledger.</p>
+    </div>
+    <span class="analytics-live-mark"><span></span> LIVE PLAYER DATA</span>
+  </header>
+
+  <div class="analytics-feedback" id="analytics-loading" role="status">
+    <span class="analytics-loader" aria-hidden="true"></span>
+    <span>Reading your recorded journey...</span>
+  </div>
+  <div class="analytics-feedback is-error" id="analytics-error" role="alert" hidden>
+    <span id="analytics-error-message">Analytics data could not be loaded.</span>
+    <button class="analytics-retry" id="analytics-retry" type="button">RETRY</button>
+  </div>
+  {% if analytics_error %}
+  <div class="analytics-feedback is-error" role="alert">{{ analytics_error }}</div>
+  {% endif %}
+
+  <section class="analytics-metric-grid" aria-label="Player analytics overview">
+    <article class="analytics-metric">
+      <span class="analytics-metric-icon metric-violet" aria-hidden="true">⌁</span>
+      <span class="analytics-metric-label">MISSIONS RECORDED</span>
+      <strong id="metric-missions">—</strong>
+      <small id="metric-missions-note">Persisted occurrences</small>
+    </article>
+    <article class="analytics-metric">
+      <span class="analytics-metric-icon metric-green" aria-hidden="true">✓</span>
+      <span class="analytics-metric-label">MISSIONS COMPLETED</span>
+      <strong id="metric-completed">—</strong>
+      <small>Current completion state</small>
+    </article>
+    <article class="analytics-metric">
+      <span class="analytics-metric-icon metric-cyan" aria-hidden="true">◌</span>
+      <span class="analytics-metric-label">LIFETIME COMPLETION</span>
+      <strong id="metric-completion-rate">—</strong>
+      <small id="metric-completion-note">No denominator without scheduled missions</small>
+    </article>
+    <article class="analytics-metric">
+      <span class="analytics-metric-icon metric-gold" aria-hidden="true">✦</span>
+      <span class="analytics-metric-label">CURRENT XP BALANCE</span>
+      <strong id="metric-xp">—</strong>
+      <small id="metric-xp-note">Net balance from player profile</small>
+    </article>
+    <article class="analytics-metric">
+      <span class="analytics-metric-icon metric-blue" aria-hidden="true">◷</span>
+      <span class="analytics-metric-label">CURRENT STREAK</span>
+      <strong id="metric-streak">—</strong>
+      <small id="metric-longest-streak">Longest streak —</small>
+    </article>
+    <article class="analytics-metric">
+      <span class="analytics-metric-icon metric-orange" aria-hidden="true">♢</span>
+      <span class="analytics-metric-label">ACHIEVEMENTS UNLOCKED</span>
+      <strong id="metric-achievements">—</strong>
+      <small>Recorded player unlocks</small>
+    </article>
+  </section>
+
+  <p class="analytics-method-note">
+    Coverage uses saved mission occurrences only; recurrence dates not yet recorded are not inferred.
+    Completion rate is completed ÷ (completed + pending + skipped). Past pending missions are counted
+    as missed without changing their status. XP trends follow local ledger transaction dates, including reversals.
+  </p>
+
+  <div class="analytics-layout">
+    <section class="analytics-panel analytics-daily-panel" aria-labelledby="daily-analytics-title">
+      <div class="analytics-panel-heading">
+        <div>
+          <p class="analytics-kicker">MISSION TELEMETRY</p>
+          <h2 id="daily-analytics-title">DAILY FIELD REPORT</h2>
+        </div>
+        <div class="analytics-date-controls" aria-label="Choose a report date">
+          <button type="button" class="analytics-icon-button" data-date-shift="-1" aria-label="Previous day">‹</button>
+          <button type="button" class="analytics-today-button" id="analytics-today">TODAY</button>
+          <button type="button" class="analytics-icon-button" data-date-shift="1" aria-label="Next day">›</button>
+          <label class="analytics-date-label" for="analytics-date">DATE</label>
+          <input id="analytics-date" type="date" value="{{ analytics_today|date:'Y-m-d' }}" max="{{ analytics_today|date:'Y-m-d' }}">
+        </div>
+      </div>
+      <p class="analytics-selected-date" id="daily-readable-date" aria-live="polite"></p>
+      <div class="analytics-daily-stats">
+        <div><span>COMPLETED</span><strong id="daily-completed">—</strong></div>
+        <div><span>SCHEDULED</span><strong id="daily-scheduled">—</strong></div>
+        <div><span>PENDING</span><strong id="daily-pending">—</strong></div>
+        <div><span>SKIPPED</span><strong id="daily-skipped">—</strong></div>
+        <div><span>COMPLETION</span><strong id="daily-rate">—</strong></div>
+      </div>
+      <div class="analytics-progress-track" aria-hidden="true"><span id="daily-progress"></span></div>
+      <p class="analytics-empty-line" id="daily-empty" hidden>No occurrence records were found for this date.</p>
+    </section>
+
+    <section class="analytics-panel analytics-trends-panel" aria-labelledby="trends-title">
+      <div class="analytics-panel-heading">
+        <div>
+          <p class="analytics-kicker">RECORDED PERFORMANCE</p>
+          <h2 id="trends-title">JOURNEY TRENDS</h2>
+        </div>
+        <label class="analytics-select-label" for="trend-range">
+          <span>TIME WINDOW</span>
+          <select id="trend-range">
+            <option value="7d">7 DAYS</option>
+            <option value="30d" selected>30 DAYS</option>
+            <option value="90d">90 DAYS</option>
+            <option value="all">ALL RECORDED</option>
+          </select>
+        </label>
+      </div>
+      <p class="analytics-panel-note">Mission counts use saved occurrences; XP uses transaction dates.</p>
+      <div class="analytics-trend-grid">
+        <div class="analytics-chart-wrap">
+          <h3>MISSIONS</h3>
+          <div class="analytics-chart" id="missions-trend-chart" role="status">Waiting for analytics data...</div>
+          <div class="analytics-chart-legend"><span class="legend-violet"></span>Completed <span class="legend-muted"></span>Scheduled</div>
+        </div>
+        <div class="analytics-chart-wrap">
+          <h3>XP LEDGER</h3>
+          <div class="analytics-chart" id="xp-trend-chart" role="status">Waiting for analytics data...</div>
+          <div class="analytics-chart-legend"><span class="legend-cyan"></span>Net XP</div>
+        </div>
+        <div class="analytics-chart-wrap">
+          <h3>COMPLETION RATE</h3>
+          <div class="analytics-chart" id="completion-trend-chart" role="status">Waiting for analytics data...</div>
+          <div class="analytics-chart-legend"><span class="legend-green"></span>Completed / scheduled</div>
+        </div>
+      </div>
+      <p class="analytics-chart-empty" id="trend-empty" hidden>No recorded activity is available in this time window.</p>
+    </section>
+
+    <section class="analytics-panel analytics-weekly-panel" aria-labelledby="weekly-title">
+      <div class="analytics-panel-heading">
+        <div>
+          <p class="analytics-kicker" id="weekly-period-label">CURRENT CALENDAR WEEK</p>
+          <h2 id="weekly-title">WEEKLY PERFORMANCE</h2>
+        </div>
+        <span class="analytics-panel-badge" id="weekly-rate">—</span>
+      </div>
+      <div class="analytics-day-list" id="weekly-days"></div>
+      <div class="analytics-best-days">
+        <p><span>BEST DAY</span><strong id="weekly-best">—</strong></p>
+        <p><span>FOCUS DAY</span><strong id="weekly-weakest">—</strong></p>
+      </div>
+      <p class="analytics-empty-line" id="weekly-empty" hidden>No mission occurrences are recorded for this week.</p>
+    </section>
+
+    <section class="analytics-panel analytics-monthly-panel" aria-labelledby="monthly-title">
+      <div class="analytics-panel-heading">
+        <div>
+          <p class="analytics-kicker">SELECTED MONTH</p>
+          <h2 id="monthly-title">MONTHLY OVERVIEW</h2>
+        </div>
+        <span class="analytics-panel-badge" id="monthly-rate">—</span>
+      </div>
+      <p class="analytics-month-label" id="monthly-label">—</p>
+      <div class="analytics-compact-stats">
+        <div><span>COMPLETED</span><strong id="monthly-completed">—</strong></div>
+        <div><span>SCHEDULED</span><strong id="monthly-scheduled">—</strong></div>
+        <div><span>ACTIVE DAYS</span><strong id="monthly-active-days">—</strong></div>
+        <div><span>NET XP</span><strong id="monthly-xp">—</strong></div>
+      </div>
+      <h3 class="analytics-subheading">WEEKLY BREAKDOWN</h3>
+      <div class="analytics-month-weeks" id="monthly-weeks"></div>
+      <p class="analytics-empty-line" id="monthly-empty" hidden>No mission occurrences are recorded for this month.</p>
+    </section>
+
+    <section class="analytics-panel analytics-consistency-panel" aria-labelledby="consistency-title">
+      <div class="analytics-panel-heading">
+        <div>
+          <p class="analytics-kicker">LAST 30 CALENDAR DAYS</p>
+          <h2 id="consistency-title">CONSISTENCY</h2>
+        </div>
+        <span class="analytics-panel-badge" id="consistency-rate">—</span>
+      </div>
+      <div class="analytics-consistency-number">
+        <strong id="consistency-active">—</strong>
+        <span>active days recorded</span>
+      </div>
+      <div class="analytics-streak-track" id="consistency-days" aria-label="Daily activity for the last 30 days"></div>
+      <div class="analytics-consistency-key"><span><i class="is-active"></i>Active day</span><span><i></i>No qualifying completion</span></div>
+      <p class="analytics-panel-note" id="consistency-note">Daily activity comes from the existing streak ledger.</p>
+    </section>
+
+    <section class="analytics-panel analytics-category-panel" aria-labelledby="category-title">
+      <div class="analytics-panel-heading">
+        <div>
+          <p class="analytics-kicker">RECORDED OCCURRENCES</p>
+          <h2 id="category-title">CATEGORY QUESTLINES</h2>
+        </div>
+        <span class="analytics-panel-badge" id="category-count">—</span>
+      </div>
+      <div class="analytics-breakdown-list" id="category-breakdown"></div>
+      <p class="analytics-empty-line" id="category-empty" hidden>No category performance is recorded yet.</p>
+    </section>
+
+    <section class="analytics-panel analytics-difficulty-panel" aria-labelledby="difficulty-title">
+      <div class="analytics-panel-heading">
+        <div>
+          <p class="analytics-kicker">MISSION CHALLENGE</p>
+          <h2 id="difficulty-title">DIFFICULTY ANALYSIS</h2>
+        </div>
+        <span class="analytics-panel-badge" id="difficulty-count">—</span>
+      </div>
+      <div class="analytics-breakdown-list" id="difficulty-breakdown"></div>
+      <p class="analytics-empty-line" id="difficulty-empty" hidden>No difficulty records are available.</p>
+    </section>
+
+    <section class="analytics-panel analytics-comparison-panel" aria-labelledby="comparison-title">
+      <div class="analytics-panel-heading">
+        <div>
+          <p class="analytics-kicker">EQUAL-LENGTH PERIODS</p>
+          <h2 id="comparison-title">PERIOD COMPARISON</h2>
+        </div>
+        <label class="analytics-select-label" for="comparison-period">
+          <span>COMPARE</span>
+          <select id="comparison-period">
+            <option value="week">WEEK</option>
+            <option value="month">MONTH</option>
+            <option value="7d">7 DAYS</option>
+            <option value="30d">30 DAYS</option>
+          </select>
+        </label>
+      </div>
+      <p class="analytics-comparison-message" id="comparison-message" role="status">Waiting for comparison data...</p>
+      <div class="analytics-comparison-grid">
+        <div><span>COMPLETED MISSIONS</span><strong id="comparison-completed">—</strong></div>
+        <div><span>COMPLETION RATE</span><strong id="comparison-rate">—</strong></div>
+        <div><span>NET XP CHANGE</span><strong id="comparison-xp">—</strong></div>
+        <div><span>CONSISTENCY</span><strong id="comparison-consistency">—</strong></div>
+      </div>
+    </section>
+
+    <section class="analytics-panel analytics-insights-panel" aria-labelledby="insights-title">
+      <div class="analytics-panel-heading">
+        <div>
+          <p class="analytics-kicker">DETERMINISTIC SIGNALS</p>
+          <h2 id="insights-title">PLAYER INSIGHTS</h2>
+        </div>
+        <span class="analytics-panel-badge">NO PREDICTIONS</span>
+      </div>
+      <div class="analytics-insights-list" id="analytics-insights"></div>
+      <p class="analytics-empty-line" id="insights-empty" hidden>No insight can be derived from the recorded data yet.</p>
+    </section>
+  </div>
+</div>
+{{ analytics_config|json_script:"analytics-config" }}
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'js/analytics.js' %}" defer></script>
+{% endblock %}

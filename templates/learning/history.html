@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Learning History · LIFEGAME{% endblock %}
+
+{% block content %}
+<div class="learning-history-page" id="learning-history-page">
+  <header class="learning-page-heading">
+    <div><p class="learning-eyebrow">RECORDED STUDY / LEARNING HISTORY</p><h1>LEARNING HISTORY</h1><p>Actual sessions, duration and study consistency.</p></div>
+    <a class="learning-history-link" href="{% url 'learning:dashboard' %}">
+      LEARNING DASHBOARD
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 10h12M10.5 5l5 5-5 5"/></svg>
+    </a>
+  </header>
+
+  <form class="learning-history-filters" method="get">
+    <label><span>RANGE</span><select name="range"><option value="7" {% if selected_range == "7" %}selected{% endif %}>Last 7 days</option><option value="30" {% if selected_range == "30" %}selected{% endif %}>Last 30 days</option><option value="90" {% if selected_range == "90" %}selected{% endif %}>Last 90 days</option><option value="all" {% if selected_range == "all" %}selected{% endif %}>All time</option></select></label>
+    <label><span>COURSE</span><select name="course"><option value="">All courses</option>{% for course in courses %}<option value="{{ course.pk }}" {% if selected_course == course.pk|stringformat:"s" %}selected{% endif %}>{{ course.title }}</option>{% endfor %}</select></label>
+    <label><span>SKILL</span><select name="skill"><option value="">All skills</option>{% for skill in skills %}<option value="{{ skill.pk }}" {% if selected_skill == skill.pk|stringformat:"s" %}selected{% endif %}>{{ skill.name }}</option>{% endfor %}</select></label>
+    <button type="submit">APPLY FILTERS</button>
+  </form>
+
+  {% if report.error %}
+  <div class="learning-feedback is-error" role="alert">{{ report.error }}</div>
+  {% else %}
+  <section class="learning-history-metrics" aria-label="Learning history metrics">
+    <article><span>TOTAL LEARNING TIME</span><strong>{{ report.total_minutes|default:0 }} min</strong></article>
+    <article><span>SESSIONS</span><strong>{{ report.session_count|default:0 }}</strong></article>
+    <article><span>AVERAGE SESSION</span><strong>{{ report.average_minutes|default:0 }} min</strong></article>
+    <article><span>MOST STUDIED SKILL</span><strong>{% if report.most_studied_skill %}{{ report.most_studied_skill.skill__name }}{% else %}—{% endif %}</strong></article>
+    <article><span>MOST STUDIED COURSE</span><strong>{% if report.most_studied_course %}{{ report.most_studied_course.course__title }}{% else %}—{% endif %}</strong></article>
+  </section>
+  <section class="learning-panel learning-history-list">
+    <div class="learning-panel-heading"><div><p>SESSION RECORDS</p><h2>LEARNING HISTORY</h2></div><span class="learning-panel-badge">{{ report.active_day_count|default:0 }} ACTIVE DAYS</span></div>
+    <div class="learning-session-history">
+      {% for session in report.sessions %}
+      <article><span>{{ session.session_date|date:"M j, Y" }}</span><div><strong>{{ session.title }}</strong><small>{% if session.course %}{{ session.course.title }}{% elif session.skill %}{{ session.skill.name }}{% else %}Independent practice{% endif %}</small></div><strong>{{ session.duration_minutes }} min</strong></article>
+      {% empty %}
+      <p class="learning-empty">No learning sessions match this history filter.</p>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+</div>
+{{ learning_config|json_script:"learning-config" }}
+{% endblock %}
