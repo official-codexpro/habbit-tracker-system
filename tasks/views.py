@@ -1,5 +1,7 @@
 import logging
 import json
+import re
+import uuid
 from datetime import date
 
 from django.core.paginator import Paginator
@@ -26,6 +28,7 @@ from .services import (
     synchronize_future_occurrences,
     undo_task_completion,
 )
+from notifications.models import TaskCreationRequest
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +90,7 @@ def task_list(request):
                 "skipUrlTemplate": reverse(
                     "tasks:api_skip", kwargs={"occurrence_id": 0}
                 ),
+                "createKey": uuid.uuid4().hex,
             },
             "has_active_tasks": Task.objects.filter(is_active=True).exists(),
             "show_archived": False,
@@ -97,16 +101,41 @@ def task_list(request):
 
 def task_create(request):
     if request.method == "POST":
+        request_key = request.POST.get("idempotency_key", "")
+        if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", request_key):
+            request_key = uuid.uuid4().hex
+        previous_request = TaskCreationRequest.objects.select_related("task").filter(
+            pk=request_key
+        ).first()
+        if previous_request and previous_request.task_id:
+            return redirect("tasks:detail", task_id=previous_request.task_id)
+        if previous_request:
+            request_key = uuid.uuid4().hex
         form = TaskForm(request.POST)
         if form.is_valid():
-            task = form.save()
+            try:
+                with transaction.atomic():
+                    task = form.save()
+                    TaskCreationRequest.objects.create(key=request_key, task=task)
+            except IntegrityError:
+                previous_request = TaskCreationRequest.objects.select_related("task").filter(
+                    pk=request_key
+                ).first()
+                if previous_request and previous_request.task_id:
+                    return redirect("tasks:detail", task_id=previous_request.task_id)
+                raise
             return redirect("tasks:detail", task_id=task.pk)
     else:
         form = TaskForm()
     return render(
         request,
         "tasks/task_form.html",
-        {"form": form, "is_create": True, "active_section": "daily-tasks"},
+        {
+            "form": form,
+            "is_create": True,
+            "idempotency_key": uuid.uuid4().hex,
+            "active_section": "daily-tasks",
+        },
     )
 
 
@@ -332,6 +361,19 @@ def create_task_api(request):
     if not isinstance(payload, dict):
         return JsonResponse({"error": "Request body must be a JSON object."}, status=400)
 
+    request_key = payload.get("idempotency_key") or request.headers.get("Idempotency-Key")
+    if request_key:
+        if not isinstance(request_key, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", request_key):
+            return JsonResponse({"error": "Idempotency key must be 1–64 letters, numbers, _ or -."}, status=400)
+        previous_request = TaskCreationRequest.objects.select_related("task", "task__category").filter(
+            pk=request_key
+        ).first()
+        if previous_request:
+            if not previous_request.task_id:
+                return JsonResponse({"error": "This idempotency key has already been used."}, status=409)
+            task = previous_request.task
+            return _task_creation_response(task, target_date, status=200)
+
     try:
         form = TaskForm(payload)
         if not form.is_valid():
@@ -341,15 +383,28 @@ def create_task_api(request):
     try:
         with transaction.atomic():
             task = form.save()
+            if request_key:
+                TaskCreationRequest.objects.create(key=request_key, task=task)
             generated_occurrences = generate_task_occurrences(target_date)
     except IntegrityError:
+        if request_key:
+            previous_request = TaskCreationRequest.objects.select_related(
+                "task", "task__category"
+            ).filter(pk=request_key).first()
+            if previous_request and previous_request.task_id:
+                return _task_creation_response(previous_request.task, target_date, status=200)
         return _database_error_response("creating", conflict=True)
     except DatabaseError:
         return _database_error_response("creating")
-    serialized_task = _serialize_task(task)
     scheduled_for_selected_date = any(
         occurrence.task_id == task.pk for occurrence in generated_occurrences
     )
+    return _task_creation_response(task, target_date, status=201, scheduled=scheduled_for_selected_date)
+
+
+def _task_creation_response(task, target_date, *, status, scheduled=None):
+    if scheduled is None:
+        scheduled = task.is_scheduled_for(target_date)
     return JsonResponse(
         {
             "id": task.pk,
@@ -359,10 +414,10 @@ def create_task_api(request):
             "recurrence_type": task.recurrence_type,
             "start_date": task.start_date.isoformat(),
             "end_date": task.end_date.isoformat() if task.end_date else None,
-            "task": serialized_task,
-            "scheduled_for_selected_date": scheduled_for_selected_date,
+            "task": _serialize_task(task),
+            "scheduled_for_selected_date": scheduled,
         },
-        status=201,
+        status=status,
     )
 
 

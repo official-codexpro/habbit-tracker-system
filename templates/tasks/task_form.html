@@ -14,6 +14,7 @@
 
   <form class="task-panel task-form" method="post" novalidate>
     {% csrf_token %}
+    {% if is_create %}<input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">{% endif %}
     {% if form.non_field_errors %}
       <div class="task-form-errors" role="alert">{{ form.non_field_errors }}</div>
     {% endif %}

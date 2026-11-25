@@ -153,6 +153,7 @@
   <dialog class="mission-dialog" id="mission-dialog" aria-labelledby="mission-dialog-title">
     <form class="mission-dialog-card" id="mission-form" method="post" novalidate>
       {% csrf_token %}
+      <input type="hidden" name="idempotency_key" value="{{ mission_config.createKey }}">
       <header class="mission-dialog-heading">
         <div>
           <p class="mission-section-kicker">MISSION CONTROL</p>

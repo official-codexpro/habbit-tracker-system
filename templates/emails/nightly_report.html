@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+  <body style="margin:0;background:#080808;color:#f4f4f5;font-family:Arial,Helvetica,sans-serif;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#080808;padding:32px 12px;"><tr><td align="center">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;background:#111113;border:1px solid #28282c;border-radius:14px;">
+        <tr><td style="padding:28px 30px 8px;color:#aaaab2;font-size:11px;letter-spacing:3px;">LIFEGAME · DAILY PROGRESS</td></tr>
+        <tr><td style="padding:8px 30px 22px;"><h1 style="margin:0 0 8px;color:#fff;font-size:24px;">Your day, complete.</h1><p style="margin:0;color:#aaaab2;font-size:14px;">{{ report_date|date:"l, F j, Y" }} · {{ summary }}</p></td></tr>
+        <tr><td style="padding:0 30px 20px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#19191c;border-radius:8px;"><tr><td style="padding:17px;color:#d4d4d8;font-size:14px;line-height:1.9;">Completed today: <strong style="color:#fff;">{{ total_completed }}</strong><br>Still pending: <strong style="color:#fff;">{{ pending_count }}</strong><br>Today's completion: <strong style="color:#fff;">{{ completion_percentage }}%</strong><br>New tasks created: <strong style="color:#fff;">{{ created_tasks|length }}</strong></td></tr></table></td></tr>
+        {% if empty %}<tr><td style="padding:0 30px 20px;color:#c4c4cc;font-size:14px;">No task activity was recorded for today.</td></tr>{% endif %}
+        {% if completed_tasks %}<tr><td style="padding:8px 30px;color:#fff;font-size:15px;font-weight:bold;">COMPLETED TODAY</td></tr>{% for row in completed_tasks %}<tr><td style="padding:7px 30px;color:#d4d4d8;font-size:14px;">{{ row.task.title }} <span style="color:#92929b;">· {{ row.completed_at|date:"P" }}</span></td></tr>{% endfor %}{% endif %}
+        {% if important_unfinished %}<tr><td style="padding:20px 30px 8px;color:#fff;font-size:15px;font-weight:bold;">IMPORTANT UNFINISHED</td></tr>{% for row in important_unfinished %}<tr><td style="padding:7px 30px;color:#d4d4d8;font-size:14px;">{{ row.task.title }} <span style="color:#92929b;">· {{ row.scheduled_date|date:"M j" }}{% if row.scheduled_date < report_date %} · overdue{% endif %}</span></td></tr>{% endfor %}{% endif %}
+        {% if created_tasks %}<tr><td style="padding:20px 30px 8px;color:#fff;font-size:15px;font-weight:bold;">CREATED TODAY</td></tr>{% for task in created_tasks %}<tr><td style="padding:7px 30px;color:#d4d4d8;font-size:14px;">{{ task.title }} <span style="color:#92929b;">· {{ task.category.name }}</span></td></tr>{% endfor %}{% endif %}
+        <tr><td style="padding:26px 30px;color:#777780;font-size:12px;">Rest well. Begin again tomorrow.</td></tr>
+      </table>
+    </td></tr></table>
+  </body>
+</html>

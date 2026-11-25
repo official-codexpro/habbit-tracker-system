@@ -1,0 +1,9 @@
+LIFEGAME — A new task is ready
+
+{{ task.title }}
+{% if task.description %}{{ task.description }}
+{% endif %}Priority: {{ priority }}
+Category: {{ task.category.name }}
+Next scheduled date: {% if due_date %}{{ due_date|date:"l, F j, Y" }}{% else %}No upcoming scheduled date{% endif %}
+Created: {{ created_at|date:"F j, Y, P" }}
+LIFEGAME does not currently store a due time for tasks.

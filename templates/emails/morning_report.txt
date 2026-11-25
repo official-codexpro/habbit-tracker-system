@@ -1,0 +1,25 @@
+LIFEGAME — Your Daily Task Briefing
+{{ report_date|date:"l, F j, Y" }}
+
+{{ opening }}
+
+Pending tasks across your active schedule: {{ pending_count }}
+{% if empty %}
+There are no scheduled or overdue tasks. Enjoy the space, or create a task when you are ready.
+{% endif %}{% if scheduled_today %}
+TODAY'S SCHEDULE
+{% for row in scheduled_today %}- {{ row.task.title }} | {{ row.task.category.name }} | {{ row.task.get_difficulty_display }} | {{ row.get_status_display }}
+{% endfor %}{% endif %}
+{% if due_today %}
+DUE TODAY
+{% for row in due_today %}- {{ row.task.title }} | {{ row.task.category.name }} | {{ row.task.get_difficulty_display }}
+{% endfor %}{% endif %}{% if overdue_tasks %}
+OVERDUE
+{% for row in overdue_tasks %}- {{ row.task.title }} | {{ row.scheduled_date|date:"M j, Y" }}
+{% endfor %}{% endif %}{% if upcoming_deadlines %}
+UPCOMING — NEXT 7 DAYS
+{% for row in upcoming_deadlines %}- {{ row.task.title }} | {{ row.scheduled_date|date:"D, M j, Y" }}
+{% endfor %}{% endif %}{% if high_priority_tasks %}
+HIGH PRIORITY
+{% for row in high_priority_tasks %}- {{ row.task.title }} | {{ row.task.get_difficulty_display }}
+{% endfor %}{% endif %}

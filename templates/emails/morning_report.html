@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <body style="margin:0;background:#080808;color:#f4f4f5;font-family:Arial,Helvetica,sans-serif;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#080808;padding:32px 12px;"><tr><td align="center">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;background:#111113;border:1px solid #28282c;border-radius:14px;">
+        <tr><td style="padding:28px 30px 8px;color:#aaaab2;font-size:11px;letter-spacing:3px;">LIFEGAME · DAILY BRIEFING</td></tr>
+        <tr><td style="padding:8px 30px 22px;"><h1 style="margin:0 0 8px;color:#fff;font-size:24px;">Your day, in focus.</h1><p style="margin:0;color:#aaaab2;font-size:14px;">{{ report_date|date:"l, F j, Y" }} · {{ opening }}</p></td></tr>
+        <tr><td style="padding:0 30px 18px;"><p style="margin:0;padding:14px 16px;background:#19191c;border-radius:8px;color:#d4d4d8;font-size:14px;">{{ pending_count }} pending task{{ pending_count|pluralize }} across your active schedule.</p></td></tr>
+        {% if empty %}<tr><td style="padding:0 30px 24px;color:#c4c4cc;font-size:14px;line-height:1.6;">There are no scheduled or overdue tasks. Enjoy the space, or create a task when you are ready.</td></tr>{% endif %}
+        {% if scheduled_today %}<tr><td style="padding:8px 30px;color:#fff;font-size:15px;font-weight:bold;">TODAY'S SCHEDULE</td></tr>{% for row in scheduled_today %}<tr><td style="padding:7px 30px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#19191c;border:1px solid #29292e;border-radius:8px;"><tr><td style="padding:13px 15px;color:#f4f4f5;font-size:14px;">{{ row.task.title }}<br><span style="color:#92929b;font-size:12px;">{{ row.task.category.name }} · {{ row.task.get_difficulty_display }} · {{ row.get_status_display }}</span></td></tr></table></td></tr>{% endfor %}{% endif %}
+        {% if due_today %}<tr><td style="padding:20px 30px 8px;color:#fff;font-size:15px;font-weight:bold;">DUE TODAY · {{ due_today|length }}</td></tr>{% for row in due_today %}<tr><td style="padding:7px 30px;color:#d4d4d8;font-size:14px;">{{ row.task.title }} <span style="color:#92929b;">· {{ row.task.category.name }} · {{ row.task.get_difficulty_display }}</span></td></tr>{% endfor %}{% endif %}
+        {% if overdue_tasks %}<tr><td style="padding:20px 30px 8px;color:#fff;font-size:15px;font-weight:bold;">OVERDUE</td></tr>{% for row in overdue_tasks %}<tr><td style="padding:7px 30px;color:#d4d4d8;font-size:14px;">{{ row.task.title }} <span style="color:#92929b;">· {{ row.scheduled_date|date:"M j" }}</span></td></tr>{% endfor %}{% endif %}
+        {% if upcoming_deadlines %}<tr><td style="padding:20px 30px 8px;color:#fff;font-size:15px;font-weight:bold;">UPCOMING · NEXT 7 DAYS</td></tr>{% for row in upcoming_deadlines %}<tr><td style="padding:7px 30px;color:#d4d4d8;font-size:14px;">{{ row.task.title }} <span style="color:#92929b;">· {{ row.scheduled_date|date:"D, M j" }}</span></td></tr>{% endfor %}{% endif %}
+        {% if high_priority_tasks %}<tr><td style="padding:20px 30px 8px;color:#fff;font-size:15px;font-weight:bold;">HIGH PRIORITY</td></tr>{% for row in high_priority_tasks %}<tr><td style="padding:7px 30px;color:#d4d4d8;font-size:14px;">{{ row.task.title }} <span style="color:#92929b;">· {{ row.task.get_difficulty_display }}</span></td></tr>{% endfor %}{% endif %}
+        <tr><td style="padding:26px 30px;color:#777780;font-size:12px;">LIFEGAME · {{ report_date|date:"F j, Y" }}</td></tr>
+      </table>
+    </td></tr></table>
+  </body>
+</html>

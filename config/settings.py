@@ -18,6 +18,33 @@ from django.core.exceptions import ImproperlyConfigured
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Local secrets live in an ignored .env file; production should inject these
+# variables through the hosting platform's environment configuration.
+def load_local_env(path):
+    """Load simple KEY=value lines without requiring a third-party package."""
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except FileNotFoundError:
+        return
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[7:].lstrip()
+        key, separator, value = line.partition("=")
+        if not separator or not key.strip():
+            continue
+        value = value.strip()
+        if len(value) >= 2 and value[0] in {"'", '"'} and value[-1] == value[0]:
+            value = value[1:-1]
+        else:
+            value = value.split(" #", 1)[0].strip()
+        os.environ.setdefault(key.strip(), value)
+
+
+load_local_env(BASE_DIR / ".env")
+
 
 DEBUG = os.environ.get("DJANGO_DEBUG", "true").strip().lower() in {
     "1",
@@ -53,6 +80,7 @@ INSTALLED_APPS = [
     'gamification.apps.GamificationConfig',
     'learning.apps.LearningConfig',
     'analytics.apps.AnalyticsConfig',
+    'notifications.apps.NotificationsConfig',
 ]
 
 MIDDLEWARE = [
@@ -139,3 +167,37 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# Email notifications (Gmail SMTP by default; credentials are never stored in code).
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com").strip()
+try:
+    EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
+except ValueError as exc:
+    raise ImproperlyConfigured("EMAIL_PORT must be an integer.") from exc
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True").strip().lower() in {
+    "1", "true", "yes", "on",
+}
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "").strip()
+EMAIL_HOST_PASSWORD = "".join(os.environ.get("EMAIL_HOST_PASSWORD", "").split())
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "").strip() or EMAIL_HOST_USER
+EMAIL_NOTIFICATION_TO = [
+    address.strip()
+    for address in (os.environ.get("EMAIL_NOTIFICATION_TO", "").strip() or EMAIL_HOST_USER).split(",")
+    if address.strip()
+]
+EMAIL_TIMEOUT = 20
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"email_console": {"class": "logging.StreamHandler"}},
+    "loggers": {
+        "notifications": {
+            "handlers": ["email_console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}

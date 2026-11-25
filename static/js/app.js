@@ -102,6 +102,18 @@
     let searchTimer = null;
     let toastTimer = null;
     let editingTaskId = null;
+    const creationKeyStorage = "lifegame-task-create-key";
+    const createIdempotencyKey = () => window.crypto && window.crypto.randomUUID
+      ? window.crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const keyField = missionForm.elements.namedItem("idempotency_key");
+    let creationRequestKey = keyField?.value || createIdempotencyKey();
+    try {
+      creationRequestKey = sessionStorage.getItem(creationKeyStorage) || creationRequestKey;
+      sessionStorage.setItem(creationKeyStorage, creationRequestKey);
+    } catch (_error) {
+      // The hidden form key still protects ordinary duplicate submissions.
+    }
 
     function formatDate(dateString, options) {
       const [year, month, day] = dateString.split("-").map(Number);
@@ -457,6 +469,7 @@
     function openMissionDialog(task = null) {
       clearFormErrors();
       missionForm.reset();
+      keyField.value = creationRequestKey;
       editingTaskId = task ? task.task_id : null;
       setCategoryOptionsForEdit(task ? task.category_id : null);
       document.getElementById("mission-dialog-title").textContent =
@@ -577,7 +590,14 @@
         ? `${taskActionUrl(config.updateUrlTemplate, editingTaskId)}?date=${encodeURIComponent(dateInput.value)}`
         : `${config.createUrl}?date=${encodeURIComponent(dateInput.value)}`;
       try {
-        const data = await postJson(url, formPayload());
+        const payload = formPayload();
+        if (!isEditing) payload.idempotency_key = creationRequestKey;
+        const data = await postJson(url, payload);
+        if (!isEditing) {
+          creationRequestKey = createIdempotencyKey();
+          keyField.value = creationRequestKey;
+          try { sessionStorage.setItem(creationKeyStorage, creationRequestKey); } catch (_error) {}
+        }
         dialog.close();
         showToast(
           isEditing

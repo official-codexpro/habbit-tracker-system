@@ -1,0 +1,21 @@
+LIFEGAME — Your Daily Progress Report
+{{ report_date|date:"l, F j, Y" }}
+
+{{ summary }}
+
+Completed today: {{ total_completed }}
+Still pending: {{ pending_count }}
+Today's completion: {{ completion_percentage }}%
+New tasks created: {{ created_tasks|length }}
+{% if empty %}
+No task activity was recorded for today.
+{% endif %}{% if completed_tasks %}
+COMPLETED TODAY
+{% for row in completed_tasks %}- {{ row.task.title }} | {{ row.completed_at|date:"P" }}
+{% endfor %}{% endif %}{% if important_unfinished %}
+IMPORTANT UNFINISHED
+{% for row in important_unfinished %}- {{ row.task.title }} | {{ row.scheduled_date|date:"M j, Y" }}{% if row.scheduled_date < report_date %} | overdue{% endif %}
+{% endfor %}{% endif %}{% if created_tasks %}
+CREATED TODAY
+{% for task in created_tasks %}- {{ task.title }} | {{ task.category.name }}
+{% endfor %}{% endif %}
